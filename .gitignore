@@ -1,0 +1,11 @@
+.streamlit/secrets.toml
+*.json
+credentials.json
+service_account.json
+.env
+backups/
+local_reports/
+__pycache__/
+.pytest_cache/
+*.pyc
+Screenshot *.png

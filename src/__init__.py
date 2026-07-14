@@ -1,0 +1,1 @@
+"""Waterfront Snack Bar Manager."""
