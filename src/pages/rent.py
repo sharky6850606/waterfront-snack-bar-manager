@@ -67,11 +67,11 @@ def render():
 
     st.subheader("All recorded rent history")
     datasets=combined_financial_data(); startup=datasets["Startup"]
-    startup_row={"Rent_ID":"LEGACY-STARTUP-RENT","Payment_Date":"Before opening","Rent_For_Month":"2025-12 and 2026-01","Description":"Startup rent","Amount":startup.get("Rent",0),"Payment_Method":"Legacy record","Reference":"","Notes":"Included in Startup Expenses; not deducted twice"}
+    startup_row={"Rent_ID":"LEGACY-STARTUP-RENT","Payment_Date":"Before opening","Rent_For_Month":"2025-11 and 2025-12","Description":"Startup rent","Amount":startup.get("Rent",0),"Payment_Method":"Legacy record","Reference":"","Notes":"Included in Startup Expenses; not deducted twice"}
     all_rows=([startup_row] if float(startup.get("Rent") or 0)>0 else [])+datasets["Rent"]
     st.metric("Total rent paid",money(sum(float(row.get("Amount") or 0) for row in all_rows)))
     history_table(all_rows, "all_rent")
-    st.caption("December 2025 and January 2026 are recorded in Startup Expenses. February and March are legacy rent records; later months come from Rent_Data.")
+    st.caption("November and December 2025 are recorded in Startup Expenses. January 2026 is included as the owner-confirmed historical correction; later months come from the legacy and application rent records.")
     if rows:
         st.subheader("Manage rent entries")
         for record in sorted(rows, key=lambda r: str(r["Payment_Date"]), reverse=True):

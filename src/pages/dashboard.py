@@ -44,7 +44,7 @@ def render():
         ("Total rent paid", total_rent_paid), ("Total gross payroll", all_values[3]),
         ("Estimated P&L", all_operating),
         ("Other startup costs", startup.get("Non_Rent_Costs",startup["Costs"]-startup.get("Rent",0))),
-        ("Startup rent (Dec & Jan)", startup.get("Rent",0)), ("Startup income", startup["Income"]),
+        ("Startup rent (Nov & Dec)", startup.get("Rent",0)), ("Startup income", startup["Income"]),
         ("Estimated cash position", cash_position),
         ("Today's sales", _total([r for r in sales_to_date if r["Date"] == today], "Sales_Amount")),
     ]

@@ -93,7 +93,7 @@ def migrate_payroll(rows):
 
 def migrate_startup(rows):
     """Read the legacy startup control totals without treating capital items as routine expenses."""
-    result={"Costs":0.0,"Income":0.0,"Net":0.0,"Rent":0.0,"Recorded_Rent":0.0,"Non_Rent_Costs":0.0,"Rent_Coverage":["2025-12","2026-01"]}
+    result={"Costs":0.0,"Income":0.0,"Net":0.0,"Rent":0.0,"Recorded_Rent":0.0,"Non_Rent_Costs":0.0,"Rent_Coverage":["2025-11","2025-12"]}
     for row in rows:
         cells=[str(value).strip() for value in row]
         label=cells[0].lower() if cells else ""
@@ -104,7 +104,7 @@ def migrate_startup(rows):
         elif label.startswith("net position"): result["Net"]=amount
         elif category=="rent": result["Recorded_Rent"]+=amount
     # The legacy total already contains its recorded rent amount. Replace that
-    # amount with the corrected WST 2,260 for Dec 2025 and Jan 2026 so rent is
+    # amount with the corrected WST 2,260 for Nov and Dec 2025 so rent is
     # visible and deducted exactly once from cash position.
     if result["Recorded_Rent"]:
         result["Rent"]=STARTUP_RENT_DEC_2025_JAN_2026

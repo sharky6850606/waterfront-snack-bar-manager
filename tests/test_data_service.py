@@ -1,6 +1,6 @@
 import pytest
 
-from src.data_service import expense_breakdown, filter_financial_data, merge_records, normalize_expense_category
+from src.data_service import expense_breakdown, filter_financial_data, include_january_2026_rent, merge_records, normalize_expense_category
 
 
 def sample_data():
@@ -17,6 +17,13 @@ def sample_data():
 def test_application_record_overrides_legacy_date():
     rows=merge_records([{"Date":"2026-06-01","Sales_Amount":10}],[{"Date":"2026-06-01","Sales_Amount":20}],"Date")
     assert rows==[{"Date":"2026-06-01","Sales_Amount":20}]
+
+
+def test_missing_january_2026_rent_is_added_once():
+    rows=include_january_2026_rent([])
+    assert rows[0]["Rent_For_Month"]=="2026-01"
+    assert rows[0]["Amount"]==1130
+    assert include_january_2026_rent(rows)==rows
 
 
 def test_filter_is_inclusive_and_links_only_finalized_payroll_details():

@@ -6,6 +6,7 @@ from .repositories import (
 )
 
 EXPENSE_CATEGORIES=("Operational","Grocery","Drawings","Other")
+JANUARY_2026_RENT=1130.0
 
 def normalize_expense_category(value):
     text=str(value or "").strip().title()
@@ -24,12 +25,30 @@ def merge_records(legacy_rows, app_rows, key):
     return list({str(row.get(key, "")): row for row in list(legacy_rows) + list(app_rows)}.values())
 
 
+def include_january_2026_rent(rows):
+    """Include the owner-confirmed January rent when no recorded row exists."""
+    output=list(rows)
+    if any(str(row.get("Rent_For_Month"))=="2026-01" and float(row.get("Amount") or 0)>0 for row in output):
+        return output
+    output.append({
+        "Rent_ID":"LEGACY-RENT-2026-01-CORRECTION",
+        "Payment_Date":"2026-01-31",
+        "Rent_For_Month":"2026-01",
+        "Description":"January 2026 rent",
+        "Amount":JANUARY_2026_RENT,
+        "Payment_Method":"Legacy record",
+        "Reference":"",
+        "Notes":"Owner-confirmed historical correction; startup rent covers November and December 2025",
+    })
+    return output
+
+
 def combined_financial_data():
     legacy = cached_legacy_dashboard_data()
     return {
         "Sales": merge_records(legacy["sales"], SalesRepository().all(), "Date"),
         "Expenses": [{**row,"Category":normalize_expense_category(row.get("Category"))} for row in merge_records(legacy["expenses"], ExpensesRepository().all(), "Date")],
-        "Rent": merge_records(legacy["rent"], RentRepository().all(), "Rent_ID"),
+        "Rent": include_january_2026_rent(merge_records(legacy["rent"], RentRepository().all(), "Rent_ID")),
         "Payroll_Runs": merge_records(legacy["payroll"], PayrollRunRepository().all(), "Payroll_ID"),
         "Payroll_Details": merge_records(legacy["payroll_details"], PayrollDetailRepository().all(), "Payroll_Detail_ID"),
         "Startup": legacy.get("startup", {"Costs":0.0,"Income":0.0,"Net":0.0,"Rent":0.0,"Recorded_Rent":0.0,"Non_Rent_Costs":0.0,"Rent_Coverage":[]}),
