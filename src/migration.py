@@ -4,6 +4,8 @@ from datetime import datetime
 from pathlib import Path
 from .validators import parse_date
 
+STARTUP_RENT_DEC_2025_JAN_2026 = 2260.0
+
 def deterministic_id(prefix,*parts): return f"MIG-{prefix}-"+hashlib.sha256("|".join(map(str,parts)).encode()).hexdigest()[:16]
 def find_header(rows, required):
     wanted={x.lower() for x in required}
@@ -91,7 +93,7 @@ def migrate_payroll(rows):
 
 def migrate_startup(rows):
     """Read the legacy startup control totals without treating capital items as routine expenses."""
-    result={"Costs":0.0,"Income":0.0,"Net":0.0,"Rent":0.0,"Rent_Coverage":["2025-12","2026-01"]}
+    result={"Costs":0.0,"Income":0.0,"Net":0.0,"Rent":0.0,"Recorded_Rent":0.0,"Non_Rent_Costs":0.0,"Rent_Coverage":["2025-12","2026-01"]}
     for row in rows:
         cells=[str(value).strip() for value in row]
         label=cells[0].lower() if cells else ""
@@ -100,8 +102,15 @@ def migrate_startup(rows):
         if label=="total startup costs": result["Costs"]=amount
         elif label=="total income": result["Income"]=amount
         elif label.startswith("net position"): result["Net"]=amount
-        elif category=="rent": result["Rent"]+=amount
-    if not result["Net"]: result["Net"]=result["Income"]-result["Costs"]
+        elif category=="rent": result["Recorded_Rent"]+=amount
+    # The legacy total already contains its recorded rent amount. Replace that
+    # amount with the corrected WST 2,260 for Dec 2025 and Jan 2026 so rent is
+    # visible and deducted exactly once from cash position.
+    if result["Recorded_Rent"]:
+        result["Rent"]=STARTUP_RENT_DEC_2025_JAN_2026
+    result["Non_Rent_Costs"]=max(0.0,result["Costs"]-result["Recorded_Rent"])
+    result["Costs"]=result["Non_Rent_Costs"]+result["Rent"]
+    result["Net"]=result["Income"]-result["Costs"]
     return result
 
 def legacy_dashboard_data(workbook):

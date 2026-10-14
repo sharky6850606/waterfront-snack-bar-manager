@@ -22,5 +22,5 @@ def test_payroll_marker_is_preserved_without_changing_recorded_expense():
  assert out[0]["Category"]=="Grocery"; assert "marked Payroll" in out[0]["Notes"]
 def test_startup_totals_and_corrected_rent_coverage():
  out=migrate_startup([["Item","Amount (T)","Category"],["Rent (legacy label)","2,230.00 T","Rent"],["TOTAL STARTUP COSTS","10,152.77 T",""] ,["TOTAL INCOME","900.00 T",""]])
- assert out["Net"]==-9252.77; assert out["Rent"]==2230; assert out["Rent_Coverage"]==["2025-12","2026-01"]
+ assert out["Net"]==-9282.77; assert out["Rent"]==2260; assert out["Recorded_Rent"]==2230; assert out["Non_Rent_Costs"]==7922.77; assert out["Costs"]==10182.77; assert out["Rent_Coverage"]==["2025-12","2026-01"]
 

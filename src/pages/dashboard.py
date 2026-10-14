@@ -42,19 +42,20 @@ def render():
         ("Total sales", all_values[0]), ("Total operating expenses", all_values[1]),
         ("Owner drawings", all_expenses["Drawings"]),
         ("Total rent paid", total_rent_paid), ("Total gross payroll", all_values[3]),
-        ("Estimated operating result", all_operating),
-        ("Startup costs", startup["Costs"]), ("Startup income", startup["Income"]),
+        ("Estimated P&L", all_operating),
+        ("Other startup costs", startup.get("Non_Rent_Costs",startup["Costs"]-startup.get("Rent",0))),
+        ("Startup rent (Dec & Jan)", startup.get("Rent",0)), ("Startup income", startup["Income"]),
         ("Estimated cash position", cash_position),
         ("Today's sales", _total([r for r in sales_to_date if r["Date"] == today], "Sales_Amount")),
     ]
-    for column, (label, value) in zip(st.columns(3) * 4, all_metrics):
+    for column, (label, value) in zip(st.columns(3) * ((len(all_metrics)+2)//3), all_metrics):
         column.metric(label, money(value))
     startup_months=", ".join(startup.get("Rent_Coverage") or [])
     recorded_rent_months=set(startup.get("Rent_Coverage") or [])|{str(row.get("Rent_For_Month")) for row in rent_to_date if float(row.get("Amount") or 0)>0}
     previous_month=(date.fromisoformat(today).replace(day=1)-pd.Timedelta(days=1)).strftime("%Y-%m")
     expected_rent_months=set(_month_range(min(recorded_rent_months),previous_month)) if recorded_rent_months else set()
     missing_rent_months=sorted(expected_rent_months-recorded_rent_months)
-    st.caption(f'Startup rent {money(startup.get("Rent",0))} covers {startup_months}; it is included in total rent paid and startup costs, but deducted only once from cash position.')
+    st.caption(f'Startup rent {money(startup.get("Rent",0))} covers {startup_months}; it is included in total rent paid and deducted exactly once from estimated cash position.')
     if missing_rent_months: st.warning(f'Rent has no recorded payment for: {", ".join(missing_rent_months)}. Estimated cash position does not deduct unrecorded rent.')
     payroll_marked=sum(float(row.get("Total_Shopping") or 0) for row in expenses_to_date if "payroll" in str(row.get("Notes","")).lower())
     if payroll_marked: st.info(f'Expense rows marked Payroll total {money(payroll_marked)}. They remain included as recorded purchases; confirm separately if any duplicate finalized payroll.')
@@ -75,10 +76,10 @@ def render():
     month_expenses = expense_breakdown(monthly[1])
     month_values = [_total(monthly[0], "Sales_Amount"), month_expenses["Operating_Total"], _total(monthly[2], "Amount"), _total(monthly[3], "Gross_Total")]
     st.subheader("Current Month")
-    month_metrics = [("Sales", month_values[0]), ("Operating expenses", month_values[1]), ("Owner drawings", month_expenses["Drawings"]), ("Rent", month_values[2]), ("Gross payroll", month_values[3]), ("Estimated operating result", operating_result(*month_values))]
+    month_metrics = [("Sales", month_values[0]), ("Operating expenses", month_values[1]), ("Owner drawings", month_expenses["Drawings"]), ("Rent", month_values[2]), ("Gross payroll", month_values[3]), ("Estimated P&L", operating_result(*month_values))]
     for column, (label, value) in zip(st.columns(3) * 2, month_metrics):
         column.metric(label, money(value))
-    st.caption("Estimated operating results are internal management estimates, not audited profit. Use Refresh Data after changing a legacy worksheet to pull updates immediately.")
+    st.caption("Estimated P&L is an internal management estimate, not audited profit. Use Refresh Data after changing a legacy worksheet to pull updates immediately.")
 
     latest_rent = max(rent_to_date, key=lambda r: str(r["Payment_Date"]), default=None)
     latest_payroll = max(payroll_to_date, key=lambda r: str(r["Pay_Date"]), default=None)

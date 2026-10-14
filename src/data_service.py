@@ -32,7 +32,7 @@ def combined_financial_data():
         "Rent": merge_records(legacy["rent"], RentRepository().all(), "Rent_ID"),
         "Payroll_Runs": merge_records(legacy["payroll"], PayrollRunRepository().all(), "Payroll_ID"),
         "Payroll_Details": merge_records(legacy["payroll_details"], PayrollDetailRepository().all(), "Payroll_Detail_ID"),
-        "Startup": legacy.get("startup", {"Costs":0.0,"Income":0.0,"Net":0.0,"Rent":0.0,"Rent_Coverage":[]}),
+        "Startup": legacy.get("startup", {"Costs":0.0,"Income":0.0,"Net":0.0,"Rent":0.0,"Recorded_Rent":0.0,"Non_Rent_Costs":0.0,"Rent_Coverage":[]}),
         "Employees": EmployeeRepository().all(),
         "Audit_Log": AuditRepository().all(),
     }
