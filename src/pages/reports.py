@@ -47,7 +47,7 @@ def render():
 
     metrics = [("Sales",summary["sales"]),("Operating expenses",summary["expenses"]),("Owner drawings",summary["drawings"]),("Rent",summary["rent"]),("Gross payroll",summary["gross_payroll"]),("Estimated operating result",summary["operating_result"]),("NPF",summary["npf"]),("ACC",summary["acc"]),("Net payroll",summary["net_payroll"])]
     if includes_startup: metrics += [("Startup costs",summary["startup_costs"]),("Startup income",summary["startup_income"]),("Estimated cash position",summary["estimated_cash_position"])]
-    for column,(label,value) in zip(st.columns(3)*3,metrics): column.metric(label,money(value))
+    for column,(label,value) in zip(st.columns(3)*4,metrics): column.metric(label,money(value))
     st.caption(f'Expense categories: Operational {money(summary["operational_expenses"])} · Grocery {money(summary["grocery_expenses"])} · Other {money(summary["other_expenses"])} · Drawings {money(summary["drawings"])} (excluded from estimated operating result)')
     st.caption(f'Inclusive period: {lo} to {hi} · Open days: {open_days} · Closed days: {closed_days} · Average open-day sales: {money(summary["average_sales"])}')
     if not includes_startup: st.caption("Startup costs and startup income appear only when the selected range covers the complete startup period from December 2025 through 14 February 2026.")
