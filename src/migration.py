@@ -23,7 +23,9 @@ def migrate_sales(rows):
         if not raw or "total" in str(raw).lower(): continue
         try: date=parse_date(raw)
         except Exception: continue
-        joined=" ".join(map(str,row)); status="Closed" if "closed" in joined.lower() else "Open"; amount=0 if status=="Closed" else _number(data.get("sales",data.get("total sales",0)))
+        joined=" ".join(map(str,row)); explicit_closed="closed" in joined.lower(); raw_amount=data.get("sales",data.get("total sales",""))
+        if not explicit_closed and not str(raw_amount).strip(): continue
+        status="Closed" if explicit_closed else "Open"; amount=0 if status=="Closed" else _number(raw_amount)
         out.append({"Sale_ID":deterministic_id("SALE",date),"Date":date,"Status":status,"Sales_Amount":amount,"Notes":"Migrated from legacy Daily Sales"})
     return out
 def migrate_expenses(rows):
@@ -35,8 +37,14 @@ def migrate_expenses(rows):
         if not raw or "total" in str(raw).lower():continue
         try: date=parse_date(raw)
         except Exception:continue
-        total=_number(d.get("total shopping",d.get("shopping",0))); cash=_number(d.get("cash provided",d.get("total cash used",d.get("cash",0)))); change=_number(d.get("change returned",d.get("leftover change",cash-total)))
-        out.append({"Expense_ID":deterministic_id("EXP",date),"Date":date,"Total_Shopping":total,"Cash_Provided":cash,"Change_Returned":change,"Notes":"Migrated from legacy Daily Expenses","Category":"Grocery"})
+        raw_total=d.get("total shopping",d.get("shopping",""))
+        if not str(raw_total).strip(): continue
+        total=_number(raw_total); cash=_number(d.get("cash provided",d.get("total cash used",d.get("cash",0)))); change=_number(d.get("change returned",d.get("leftover change",cash-total)))
+        marker=str(d.get("pdf link (breakdown)",d.get("notes",""))).strip()
+        is_payroll="payroll" in marker.lower()
+        note="Migrated from legacy Daily Expenses"
+        if is_payroll: note += "; source row marked Payroll"
+        out.append({"Expense_ID":deterministic_id("EXP",date),"Date":date,"Total_Shopping":total,"Cash_Provided":cash,"Change_Returned":change,"Notes":note,"Category":"Grocery"})
     return out
 def migrate_rent(rows):
     idx=find_header(rows,["date"]); out=[]
@@ -47,8 +55,10 @@ def migrate_rent(rows):
         if not raw or "total" in str(raw).lower():continue
         try: date=parse_date(raw)
         except Exception:continue
+        amount=_number(d.get("amount",0))
+        if amount <= 0: continue
         month=str(d.get("rent for month",date[:7]))[:7]
-        out.append({"Rent_ID":deterministic_id("RENT",date,month,n),"Payment_Date":date,"Rent_For_Month":month,"Description":d.get("description","Migrated rent"),"Amount":_number(d.get("amount",0)),"Payment_Method":d.get("payment method","Unknown"),"Reference":d.get("reference",""),"Notes":"Migrated from legacy Rent"})
+        out.append({"Rent_ID":deterministic_id("RENT",date,month,n),"Payment_Date":date,"Rent_For_Month":month,"Description":d.get("description","Migrated rent"),"Amount":amount,"Payment_Method":d.get("payment method","Unknown"),"Reference":d.get("reference",""),"Notes":"Migrated from legacy Rent"})
     return out
 def migrate_payroll(rows):
     """Conservatively parse repeated payroll tables; unrecognized blocks are skipped."""
@@ -79,6 +89,21 @@ def migrate_payroll(rows):
         ds=[d for d in details if d["Payroll_ID"]==run["Payroll_ID"]]; run.update({"Gross_Total":sum(d["Gross_Pay"] for d in ds),"NPF_Total":sum(d["NPF_Amount"] for d in ds),"ACC_Total":sum(d["ACC_Amount"] for d in ds),"Net_Total":sum(d["Net_Pay"] for d in ds)})
     return runs,details
 
+def migrate_startup(rows):
+    """Read the legacy startup control totals without treating capital items as routine expenses."""
+    result={"Costs":0.0,"Income":0.0,"Net":0.0,"Rent":0.0,"Rent_Coverage":["2025-12","2026-01"]}
+    for row in rows:
+        cells=[str(value).strip() for value in row]
+        label=cells[0].lower() if cells else ""
+        amount=_number(cells[1]) if len(cells)>1 else 0.0
+        category=cells[2].lower() if len(cells)>2 else ""
+        if label=="total startup costs": result["Costs"]=amount
+        elif label=="total income": result["Income"]=amount
+        elif label.startswith("net position"): result["Net"]=amount
+        elif category=="rent": result["Rent"]+=amount
+    if not result["Net"]: result["Net"]=result["Income"]-result["Costs"]
+    return result
+
 def legacy_dashboard_data(workbook):
     """Batch-read supported legacy tabs for a read-only dashboard preview."""
     by_name={ws.title.strip():ws for ws in workbook.worksheets()}
@@ -86,7 +111,8 @@ def legacy_dashboard_data(workbook):
     expenses=migrate_expenses(by_name["Daily Expenses"].get_all_values()) if "Daily Expenses" in by_name else []
     rent=migrate_rent(by_name["Rent"].get_all_values()) if "Rent" in by_name else []
     runs,details=migrate_payroll(by_name["Payroll"].get_all_values()) if "Payroll" in by_name else ([],[])
-    return {"sales":sales,"expenses":expenses,"rent":rent,"payroll":runs,"payroll_details":details}
+    startup=migrate_startup(by_name["Startup Expenses"].get_all_values()) if "Startup Expenses" in by_name else {"Costs":0.0,"Income":0.0,"Net":0.0,"Rent":0.0,"Rent_Coverage":[]}
+    return {"sales":sales,"expenses":expenses,"rent":rent,"payroll":runs,"payroll_details":details,"startup":startup}
 
 @st.cache_data(ttl=300,show_spinner=False)
 def cached_legacy_dashboard_data():
@@ -104,3 +130,4 @@ def backup_workbook(workbook,root="backups"):
     except Exception:
         raise RuntimeError(f"Backup failed; migration aborted. Inspect {folder}")
     return folder
+

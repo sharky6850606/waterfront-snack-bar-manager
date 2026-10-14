@@ -43,3 +43,4 @@ def test_expense_breakdown_excludes_drawings_from_operating_total():
     ])
     assert totals["Operating_Total"] == 170
     assert totals["Cash_Outflow_Total"] == 200
+

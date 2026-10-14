@@ -1,4 +1,4 @@
-from src.migration import migrate_sales,migrate_payroll,deterministic_id
+from src.migration import migrate_sales,migrate_payroll,migrate_startup,deterministic_id
 def test_sales_migration():
  rows=[["title"],["Date","Sales"],["31/03/26","100.50"],["01/04/26","Closed"],["Total","100.50"]]; out=migrate_sales(rows); assert len(out)==2; assert out[0]["Date"]=="2026-03-31"; assert out[1]["Sales_Amount"]==0
 def test_ids_stable(): assert deterministic_id("X",1)==deterministic_id("X",1)
@@ -11,3 +11,16 @@ def test_real_payroll_title_style():
 def test_expense_real_headers():
  from src.migration import migrate_expenses
  out=migrate_expenses([["Date","Total Shopping","Total Cash Used","Leftover Change","PDF Link (Breakdown)"],["11/03/2026","598.4","668.8","70.4","PDF File"]]); assert out[0]["Cash_Provided"]==668.8; assert out[0]["Change_Returned"]==70.4
+def test_blank_legacy_rows_are_not_counted():
+ from src.migration import migrate_expenses,migrate_rent
+ assert migrate_sales([["Date","Sales"],["30/06/26",""]])==[]
+ assert migrate_expenses([["Date","Total Shopping"],["30/06/26",""]])==[]
+ assert migrate_rent([["Date","Month","Amount"],["30/06/26","June",""]])==[]
+def test_payroll_marker_is_preserved_without_changing_recorded_expense():
+ from src.migration import migrate_expenses
+ out=migrate_expenses([["Date","Total Shopping","Total Cash Used","Leftover Change","PDF Link (Breakdown)"],["05/06/26","450","600","150","Payroll"]])
+ assert out[0]["Category"]=="Grocery"; assert "marked Payroll" in out[0]["Notes"]
+def test_startup_totals_and_corrected_rent_coverage():
+ out=migrate_startup([["Item","Amount (T)","Category"],["Rent (legacy label)","2,230.00 T","Rent"],["TOTAL STARTUP COSTS","10,152.77 T",""] ,["TOTAL INCOME","900.00 T",""]])
+ assert out["Net"]==-9252.77; assert out["Rent"]==2230; assert out["Rent_Coverage"]==["2025-12","2026-01"]
+

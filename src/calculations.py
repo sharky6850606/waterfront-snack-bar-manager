@@ -12,3 +12,6 @@ def payroll_line(hours, hourly_rate, npf_rate, acc_rate, overtime_hours=0, publi
 def payroll_totals(lines):
     return {k:q(sum((D(x[k]) for x in lines),D(0))) for k in ("Gross_Pay","NPF_Amount","ACC_Amount","Net_Pay")}
 def operating_result(sales, expenses, rent, gross_payroll): return q(D(sales)-D(expenses)-D(rent)-D(gross_payroll))
+def estimated_cash_position(operating, startup_costs=0, startup_income=0, drawings=0):
+    return q(D(operating)+D(startup_income)-D(startup_costs)-D(drawings))
+

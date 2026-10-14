@@ -7,6 +7,8 @@ import streamlit as st
 from ..audit import log_action
 from ..config import now
 from ..repositories import RentRepository
+from ..data_service import combined_financial_data
+from ..config import money
 from ..ui_components import guarded_load, history_table, page_header
 
 
@@ -63,8 +65,13 @@ def render():
             except Exception as exc:
                 st.error(str(exc))
 
-    st.subheader("Rent history")
-    history_table(rows, "rent")
+    st.subheader("All recorded rent history")
+    datasets=combined_financial_data(); startup=datasets["Startup"]
+    startup_row={"Rent_ID":"LEGACY-STARTUP-RENT","Payment_Date":"Before opening","Rent_For_Month":"2025-12 and 2026-01","Description":"Startup rent","Amount":startup.get("Rent",0),"Payment_Method":"Legacy record","Reference":"","Notes":"Included in Startup Expenses; not deducted twice"}
+    all_rows=([startup_row] if float(startup.get("Rent") or 0)>0 else [])+datasets["Rent"]
+    st.metric("Total rent paid",money(sum(float(row.get("Amount") or 0) for row in all_rows)))
+    history_table(all_rows, "all_rent")
+    st.caption("December 2025 and January 2026 are recorded in Startup Expenses. February and March are legacy rent records; later months come from Rent_Data.")
     if rows:
         st.subheader("Manage rent entries")
         for record in sorted(rows, key=lambda r: str(r["Payment_Date"]), reverse=True):
@@ -88,3 +95,4 @@ def render():
                     if no.button("Cancel", key=f'rent_no_{record["Rent_ID"]}'):
                         st.session_state.pop("pending_rent_delete", None)
                         st.rerun()
+

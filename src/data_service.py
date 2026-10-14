@@ -32,6 +32,7 @@ def combined_financial_data():
         "Rent": merge_records(legacy["rent"], RentRepository().all(), "Rent_ID"),
         "Payroll_Runs": merge_records(legacy["payroll"], PayrollRunRepository().all(), "Payroll_ID"),
         "Payroll_Details": merge_records(legacy["payroll_details"], PayrollDetailRepository().all(), "Payroll_Detail_ID"),
+        "Startup": legacy.get("startup", {"Costs":0.0,"Income":0.0,"Net":0.0,"Rent":0.0,"Rent_Coverage":[]}),
         "Employees": EmployeeRepository().all(),
         "Audit_Log": AuditRepository().all(),
     }
@@ -50,3 +51,4 @@ def filter_financial_data(datasets, start, end):
     details = [r for r in datasets["Payroll_Details"] if str(r.get("Payroll_ID")) in payroll_ids]
     audit = [r for r in datasets["Audit_Log"] if lo <= str(r.get("Timestamp", ""))[:10] <= hi]
     return {"Sales": sales, "Expenses": expenses, "Rent": rent, "Payroll_Runs": runs, "Payroll_Details": details, "Employees": datasets["Employees"], "Audit_Log": audit}
+
